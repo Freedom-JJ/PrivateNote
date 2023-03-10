@@ -8,16 +8,20 @@
 
 ---
 
-|  Method   |            Parameters            |               Descriptions               | Return                                         |    H     |
-| :-------: | :------------------------------: | :--------------------------------------: | ---------------------------------------------- | :------: |
-|   open    |  (char* name,int flags,[mode])   |  打开文件，通过不同的flags有不同的效果   | int(文件描述符)                                | fcntl.h  |
-|   read    | (int fd, void * buf, size_t len) |     通过文件描述符，读取内容到buf中      | ssize_t(写入buf字节数),0代表 EOF, -1代表 ERROR | unistd.h |
-|   write   | (int fd, void * buf, size_t len) | 无法保证调用后立马存在于文件中（写缓存） | ssize_t(写入buf字节数), -1代表 ERROR           | unistd.h |
-|   fsync   |             (int fd)             |      直接IO，至少两个IO，性能消耗高      | 成功0，失败-1                                  | unisd.h  |
-| fdatasync |             (int fd)             |           直接IO，不更新元数据           | 成功0，失败-1                                  | unisd.h  |
-|   sync    |               void               |       对磁盘上的所有缓冲区进行同步       | void                                           |          |
-
-### 
+|    Method     |                          Parameters                          |                     Descriptions                      | Return                                             |         H          |
+| :-----------: | :----------------------------------------------------------: | :---------------------------------------------------: | -------------------------------------------------- | :----------------: |
+|     open      |                (char* name,int flags,[mode])                 |         打开文件，通过不同的flags有不同的效果         | int(文件描述符)                                    |      fcntl.h       |
+|     read      |               (int fd, void * buf, size_t len)               |            通过文件描述符，读取内容到buf中            | ssize_t(写入buf字节数),0代表 EOF, -1代表 ERROR     |      unistd.h      |
+|     write     |               (int fd, void * buf, size_t len)               |       无法保证调用后立马存在于文件中（写缓存）        | ssize_t(写入buf字节数), -1代表 ERROR               |      unistd.h      |
+|     fsync     |                           (int fd)                           |            直接IO，至少两个IO，性能消耗高             | 成功0，失败-1                                      |      unisd.h       |
+|   fdatasync   |                           (int fd)                           |                 直接IO，不更新元数据                  | 成功0，失败-1                                      |      unisd.h       |
+|     sync      |                             void                             |             对磁盘上的所有缓冲区进行同步              | void                                               |                    |
+|     close     |                           (int fd)                           |                       关闭文件                        | int成功0，失败-1并且设置对应errno                  |      unistd.h      |
+|     lseek     |              (int fd , off_t pos , int origin)               |         跳转文件位置,具体行为根据不同的origin         | off_t，成功返回当前位置，错误返回-1，并且设置errno |      unistd.h      |
+| pread和pwrite |         (int fd, void * buf, size_t len , off_t pos)         | 在pos位置读写，结束时也不会更新文件位置，复杂操作更好 | 类似read和write                                    | unistd.h需要define |
+|   ftruncate   |                    （int fd , off_t len）                    |                     截断文件长度                      | 0,-1                                               |      unistd.h      |
+|   truncate    |                  (const char * path , len)                   |                                                       |                                                    |                    |
+|    select     | (int n , fd_set &reads , fd_set &writes,fd_set &except,time_val &) |        IO多路复用，支持在多个文件描述符上阻塞         |                                                    |                    |
 
 ---
 
@@ -82,6 +86,10 @@ while(len != 0 && (ret = read(fd,buf,len)) != 0){
 
 3.  **write**
 
+---
+
+
+
 普通文件预防部分写方法
 
 ```c
@@ -112,6 +120,22 @@ while(len != 0 && (ret = write(fd,buf,len)) != 0){
     len -= ret;
     buf += ret;
 }
+```
+
+4. lseek
+
+---
+
+lseek行为依赖下面的origin值:
+
+```
+1.SEEK_CUR
+	文件位置跳转为当前位置＋pos
+2.SEEK_END
+	文件位置跳转为末尾位置＋pos
+3.SEEK_SET
+	文件位置跳转为0+pos
+调用成功时返回新的文件位置，错误时返回-1，并相应设置errno值。
 ```
 
 
