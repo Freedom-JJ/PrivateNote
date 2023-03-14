@@ -4,7 +4,7 @@
 
 在Linux中万物都为文件，普通文件，设备，socket，标准输入输出等等
 
-常用接口：
+常用Linux接口：
 
 ---
 
@@ -24,6 +24,26 @@
 |    select     | (int n , fd_set &reads , fd_set &writes,fd_set &except,time_val &) |        IO多路复用，支持在多个文件描述符上阻塞         |                                                    |                    |
 
 ---
+
+标准文件IO：
+
+|  Method   | Parameters                               | Descriptions                                          | Return                               | H       |
+| :-------: | ---------------------------------------- | ----------------------------------------------------- | ------------------------------------ | ------- |
+|   fopen   | (const char * path , const char * mode)  | 打开文件为流                                          | FILE *                               | stdio.h |
+|  fdopen   | (int fd , const char * mode)             | 通过文件描述符打开文件为流                            | FILE *                               | stdio.h |
+|  fclose   | (FILE * stream)                          | 关闭流                                                | 成功0，失败返回EOF，并且设置errno    | stdio.h |
+| fcloseall | (void)                                   | 关闭当前进程所有流                                    | 0                                    | stdio.h |
+|   fgetc   | (FILE * stream)                          | 从流中读取一个字符                                    | int为返回的字符，或者EOF(错误和结束) | stdio.h |
+|  ungetc   | (int c , FILE * stream)                  | 往流中放一个字符，但不会保存，fgetc()将会取到这个字符 | 成功返回c，失败返回EOF               | stdio.h |
+|   fgets   | (char *buf , size_t size ,FILE * stream) | 读取一行字符，以\n为分割符                            | 成功返回buf，失败返回NULL            | stdio.h |
+
+
+
+
+
+
+
+
 
 参数解析：
 
