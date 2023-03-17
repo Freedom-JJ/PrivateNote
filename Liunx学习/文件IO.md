@@ -27,15 +27,29 @@
 
 标准文件IO：
 
-|  Method   | Parameters                               | Descriptions                                          | Return                               | H       |
-| :-------: | ---------------------------------------- | ----------------------------------------------------- | ------------------------------------ | ------- |
-|   fopen   | (const char * path , const char * mode)  | 打开文件为流                                          | FILE *                               | stdio.h |
-|  fdopen   | (int fd , const char * mode)             | 通过文件描述符打开文件为流                            | FILE *                               | stdio.h |
-|  fclose   | (FILE * stream)                          | 关闭流                                                | 成功0，失败返回EOF，并且设置errno    | stdio.h |
-| fcloseall | (void)                                   | 关闭当前进程所有流                                    | 0                                    | stdio.h |
-|   fgetc   | (FILE * stream)                          | 从流中读取一个字符                                    | int为返回的字符，或者EOF(错误和结束) | stdio.h |
-|  ungetc   | (int c , FILE * stream)                  | 往流中放一个字符，但不会保存，fgetc()将会取到这个字符 | 成功返回c，失败返回EOF               | stdio.h |
-|   fgets   | (char *buf , size_t size ,FILE * stream) | 读取一行字符，以\n为分割符                            | 成功返回buf，失败返回NULL            | stdio.h |
+|     Method     | Parameters                                     | Descriptions                                                 | Return                                                       | H        |
+| :------------: | ---------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------ | -------- |
+|     fopen      | (const char * path , const char * mode)        | 打开文件为流                                                 | FILE *                                                       | stdio.h  |
+|     fdopen     | (int fd , const char * mode)                   | 通过文件描述符打开文件为流                                   | FILE *                                                       | stdio.h  |
+|     fclose     | (FILE * stream)                                | 关闭流                                                       | 成功0，失败返回EOF，并且设置errno                            | stdio.h  |
+|   fcloseall    | (void)                                         | 关闭当前进程所有流                                           | 0                                                            | stdio.h  |
+|     fgetc      | (FILE * stream)                                | 从流中读取一个字符                                           | int为返回的字符，或者EOF(错误和结束)                         | stdio.h  |
+|     ungetc     | (int c , FILE * stream)                        | 往流中放一个字符，但不会保存，fgetc()将会取到这个字符        | 成功返回c，失败返回EOF                                       | stdio.h  |
+|     fgets      | (char *buf , size_t size ,FILE * stream)       | 读取一行字符，以\n为分割符                                   | 成功返回buf，失败返回NULL                                    | stdio.h  |
+|     fread      | (void *buf,size_t size,size_t nr,FILE *stream) | 读取二进制文件,读取nr个size大小的自己                        | 返回读取了多少个size，一般是nr，不等于nr可能是文件结束或失败(需要通过ferror()区分) | stdio.h  |
+|     fseek      | (FILE * , long offset , int whence)            | 等价lseek但是不会返回seek后位置，参数也类似                  | int，成功0清空EOF和ungetc操作，失败1设置error                | stdio.h  |
+|  int fsetpos   | (FILE * , fpos_t *pos)                         | 设置为指向pos位置，可跨平台，但是pos（long）指向位置有限     | 成功0，失败-1                                                | stdio.h  |
+|  void rewind   | (FILE * )                                      | 跳转到流开头,会清空error                                     |                                                              | stdio.h  |
+|   long ftell   | (FILE *)                                       | 返回文件当前指向，补充fseek的缺憾                            | 出错-1，设置error                                            | stdio.h  |
+|   int fflush   | (FILE *)                                       | 把用户区的缓存数据写入到缓存区，不保证立马写入文件，fsync可以同步 | 成功0，失败EOF                                               | stdio.h  |
+|   int ferror   | (FILE *)                                       | 检测流是否有错误                                             | 有错误返回非0                                                | stdio.h  |
+|    int feof    | (FILE *)                                       | 检测流是否结尾                                               | 结尾返回非0                                                  | stdio.h  |
+| void clearer() | (FILE*)                                        | 清除EOF和ERROR信息                                           |                                                              |          |
+|    setvbuf     |                                                | 修改缓冲模式后面详解                                         |                                                              |          |
+|    strerror    | (int errno)                                    | 打印对应的errno的错误信息                                    | char *                                                       | string.h |
+|     errno      | 不是函数，而是参数                             | IO对应的错误信息                                             | int                                                          | errno.h  |
+
+
 
 
 
@@ -159,6 +173,44 @@ lseek行为依赖下面的origin值:
 ```
 
 
+
+---
+
+## 标准IO
+
+#### 1. 缓存模式
+
+```
+1.无缓冲(_IONBF)
+	不执行用户缓冲，直接提交给内核缓冲，不建议使用
+2.行缓冲(_IOLBF)
+	遇到换行符，缓冲区数据提交给内核
+3.块缓冲(_IOFBF)
+	缓冲以块为单位执行，每个块是固定的字节数，很适合文件的读写，大部分情况下默认模式就是块缓冲
+4.修改缓冲模式
+	int setvbuf(FILE *,char *buf ,int mode ,size_t size)，成功返回0，失败其他。当mode为_IONBF时，会忽略掉buf和size。如果buf为空，编译器自动分配size大小，最好交给编译器，因为关闭流时缓冲区必须存在，如果自己写buf一定注意作用域的问题。
+```
+
+#### 2.线程安全
+
+标准IO的操作都是具有原子性是线程安全的。
+
+```
+1.void flockfile(FILE *stream)
+	获取流的所有权并且加锁（阻塞）
+2.int ftrylockfile(FILE *stream)
+	尝试加锁，如果获取不到立马返回0(非阻塞)
+3.funlockfile(FILE *stream)
+	解锁，和加锁是配对操作
+简单流程如下
+flockfile(file);
+//some io
+funlockfile(file);
+```
+
+---
+
+标准IO提供了一些相对应的不加锁IO,通常在常用io后面加上_unlocked，比如fputs_unlocked()
 
 ###### Refernece
 
